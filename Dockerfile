@@ -1,15 +1,46 @@
-FROM gradle:4.7.0-jdk8-alpine AS build
-COPY --chown=gradle:gradle . /home/gradle/src
-WORKDIR /home/gradle/src
-RUN gradle build --no-daemon 
+# Start from a small, secure base image
+FROM golang:1.22-alpine AS builder
 
-FROM openjdk:8-jre-slim
+# Set the working directory inside the container
+WORKDIR /app
 
+# Copy the Go module files
+COPY go.mod go.sum ./
+
+# Download the Go module dependencies
+RUN go mod download
+
+# Copy the source code into the container
+COPY . .
+
+# Build the Go binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app ./cmd/main.go
+
+# Create a minimal production image
+FROM alpine:latest
+
+# It's essential to regularly update the packages within the image to include security patches
+# Also install bash to run wait-for-it.sh
+RUN apk update && apk upgrade && apk add bash
+
+# Reduce image size
+RUN rm -rf /var/cache/apk/* && \
+    rm -rf /tmp/*
+
+# Avoid running code as a root user
+RUN adduser -D appuser
+USER appuser
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy only the necessary files from the builder stage
+COPY --from=builder /app/app .
+COPY --from=builder /app/cmd/wait-for-it.sh .
+COPY --from=builder /app/internal/app/migrations ./migrations
+
+# Expose the port that the application listens on
 EXPOSE 8080
 
-RUN mkdir /app
-
-COPY --from=build /home/gradle/src/build/libs/*.jar /app/spring-boot-application.jar
-
-ENTRYPOINT ["java", "-XX:+UnlockExperimentalVMOptions", "-XX:+UseCGroupMemoryLimitForHeap", "-Djava.security.egd=file:/dev/./urandom","-jar","/app/spring-boot-application.jar"]
-
+# Run the binary when the container starts
+CMD ["./app"]

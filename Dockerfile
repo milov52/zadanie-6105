@@ -42,6 +42,10 @@ COPY --from=builder /app/app .
 COPY --from=builder /app/cmd/wait-for-it.sh .
 COPY --from=builder /app/internal/app/migrations ./migrations
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
+COPY entrypoint.sh .
+
+# Make the entrypoint script executable
+RUN chmod +x ./entrypoint.sh
 
 # Expose the port that the application listens on
 EXPOSE 8080

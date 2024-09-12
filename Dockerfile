@@ -50,5 +50,5 @@ EXPOSE 8080
 ENV LOCAL_MIGRATION_DSN="${POSTGRES_CONN}"
 ENV LOCAL_MIGRATION_DIR="./migrations"
 
-# Run the binary when the container starts, using environment variables
-CMD ./wait-for-it.sh ${POSTGRES_HOST}:${POSTGRES_PORT} -- goose -dir ${LOCAL_MIGRATION_DIR} postgres "${LOCAL_MIGRATION_DSN}" up -v && ./app
+# Run migrations and start the application
+CMD goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up -v && ./app

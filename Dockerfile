@@ -51,4 +51,4 @@ ENV LOCAL_MIGRATION_DSN="${POSTGRES_CONN}"
 ENV LOCAL_MIGRATION_DIR="./migrations"
 
 # Run migrations and start the application
-CMD  goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up && ./app
+CMD  goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up -v && ./app

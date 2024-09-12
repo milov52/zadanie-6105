@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE IF NOT EXISTS employee (
-                          id SERIAL PRIMARY KEY,
+                          id UUID PRIMARY KEY,
                           username VARCHAR(50) UNIQUE NOT NULL,
                           first_name VARCHAR(50),
                           last_name VARCHAR(50),
@@ -15,7 +15,7 @@ CREATE TYPE organization_type AS ENUM (
     );
 
 CREATE TABLE IF NOT EXISTS organization (
-                              id SERIAL PRIMARY KEY,
+                              id UUID PRIMARY KEY,
                               name VARCHAR(100) NOT NULL,
                               description TEXT,
                               type organization_type,
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS organization (
 
 CREATE TABLE IF NOT EXISTS organization_responsible (
                                           id SERIAL PRIMARY KEY,
-                                          organization_id INT REFERENCES organization(id) ON DELETE CASCADE,
-                                          user_id INT REFERENCES employee(id) ON DELETE CASCADE
+                                          organization_id uuid REFERENCES organization(id) ON DELETE CASCADE,
+                                          user_id uuid REFERENCES employee(id) ON DELETE CASCADE
 );
 
 CREATE TYPE service_type AS ENUM (
@@ -42,13 +42,13 @@ CREATE TYPE tender_status AS ENUM (
     );
 
 CREATE TABLE IF NOT EXISTS tender (
-                        id SERIAL PRIMARY KEY ,
+                        id UUID PRIMARY KEY,
                         name VARCHAR(100) NOT NULL,
                         description VARCHAR(500) NOT NULL,
                         service_type service_type,
                         status tender_status DEFAULT 'Created',
-                        organization_id INT REFERENCES organization(id) ON DELETE CASCADE,
-                        user_id INT  REFERENCES employee(id) ON DELETE CASCADE,
+                        organization_id uuid REFERENCES organization(id) ON DELETE CASCADE,
+                        user_id uuid  REFERENCES employee(id) ON DELETE CASCADE,
                         version INT DEFAULT 1,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -68,13 +68,13 @@ CREATE TYPE author_type AS ENUM (
     );
 
 CREATE TABLE IF NOT EXISTS bid (
-                      id SERIAL PRIMARY KEY ,
+                      id UUID PRIMARY KEY,
                       name VARCHAR(100) NOT NULL,
                       description VARCHAR(500) NOT NULL,
                       status bild_status,
-                      tender_id INT REFERENCES tender(id) ON DELETE CASCADE,
+                      tender_id uuid REFERENCES tender(id) ON DELETE CASCADE,
                       author_type author_type,
-                      author_id INT REFERENCES employee(id) ON DELETE CASCADE,
+                      author_id uuid REFERENCES employee(id) ON DELETE CASCADE,
                       version INT DEFAULT 1,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

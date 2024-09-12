@@ -46,18 +46,9 @@ COPY --from=builder /go/bin/goose /usr/local/bin/goose
 # Expose the port that the application listens on
 EXPOSE 8080
 
-# Set environment variables for PostgreSQL connection (these will be passed in at runtime)
-ENV POSTGRES_USERNAME=postgres
-ENV POSTGRES_PASSWORD=password
-ENV POSTGRES_HOST=host.docker.internal
-ENV POSTGRES_PORT=5433
-ENV POSTGRES_DATABASE=tenders
-ENV SERVER_ADDRESS=":8080"
-ENV POSTGRES_CONN="postgres://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}?sslmode=disable"
-
-# Define the DSN for goose migrations
-ENV LOCAL_MIGRATION_DSN="postgres://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}?sslmode=disable"
+# Define environment variables for PostgreSQL connection from the already defined environment
+ENV LOCAL_MIGRATION_DSN="${POSTGRES_CONN}"
 ENV LOCAL_MIGRATION_DIR="./migrations"
 
-# Run the binary when the container starts
-CMD ./wait-for-it.sh ${POSTGRES_HOST}:${POSTGRES_PORT} -- goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up -v && ./app
+# Run the binary when the container starts, using environment variables
+CMD ./wait-for-it.sh ${POSTGRES_HOST}:${POSTGRES_PORT} -- goose -dir ${LOCAL_MIGRATION_DIR} postgres "${LOCAL_MIGRATION_DSN}" up -v && ./app

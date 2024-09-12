@@ -1,33 +1,33 @@
 -- +goose Up
-CREATE TABLE IF NOT EXISTS employee (
-                          id UUID PRIMARY KEY,
-                          username VARCHAR(50) UNIQUE NOT NULL,
-                          first_name VARCHAR(50),
-                          last_name VARCHAR(50),
-                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TYPE organization_type AS ENUM (
-    'IE',
-    'LLC',
-    'JSC'
-    );
-
-CREATE TABLE IF NOT EXISTS organization (
-                              id UUID PRIMARY KEY,
-                              name VARCHAR(100) NOT NULL,
-                              description TEXT,
-                              type organization_type,
-                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS organization_responsible (
-                                          id SERIAL PRIMARY KEY,
-                                          organization_id uuid REFERENCES organization(id) ON DELETE CASCADE,
-                                          user_id uuid REFERENCES employee(id) ON DELETE CASCADE
-);
+-- CREATE TABLE IF NOT EXISTS employee (
+--                           id UUID PRIMARY KEY,
+--                           username VARCHAR(50) UNIQUE NOT NULL,
+--                           first_name VARCHAR(50),
+--                           last_name VARCHAR(50),
+--                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+--
+-- CREATE TYPE organization_type AS ENUM (
+--     'IE',
+--     'LLC',
+--     'JSC'
+--     );
+--
+-- CREATE TABLE IF NOT EXISTS organization (
+--                               id UUID PRIMARY KEY,
+--                               name VARCHAR(100) NOT NULL,
+--                               description TEXT,
+--                               type organization_type,
+--                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--                               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+--
+-- CREATE TABLE IF NOT EXISTS organization_responsible (
+--                                           id SERIAL PRIMARY KEY,
+--                                           organization_id uuid REFERENCES organization(id) ON DELETE CASCADE,
+--                                           user_id uuid REFERENCES employee(id) ON DELETE CASCADE
+-- );
 
 CREATE TYPE service_type AS ENUM (
     'Construction',

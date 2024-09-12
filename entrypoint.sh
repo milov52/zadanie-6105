@@ -2,7 +2,7 @@
 set -e
 
 # Step 1: Run migrations
-goose -dir ${LOCAL_MIGRATION_DIR} postgres ${LOCAL_MIGRATION_DSN} up
+goose -dir ./migrations postgres ${POSTGRES_CONN} up
 
 # Step 2: Start the application
 ./app

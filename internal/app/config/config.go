@@ -20,9 +20,5 @@ func Read() Config {
 		config.DSN = dsn
 	}
 
-	migrationsPath, exists := os.LookupEnv("MIGRATIONS_PATH")
-	if exists {
-		config.MigrationsPath = migrationsPath
-	}
 	return config
 }

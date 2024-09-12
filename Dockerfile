@@ -49,9 +49,11 @@ EXPOSE 8080
 # Set environment variables for PostgreSQL connection (these will be passed in at runtime)
 ENV POSTGRES_USERNAME=postgres
 ENV POSTGRES_PASSWORD=password
-ENV POSTGRES_HOST=localhost
-ENV POSTGRES_PORT=5432
+ENV POSTGRES_HOST=host.docker.internal
+ENV POSTGRES_PORT=5433
 ENV POSTGRES_DATABASE=tenders
+ENV SERVER_ADDRESS=":8080"
+ENV POSTGRES_CONN="postgres://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}?sslmode=disable"
 
 # Define the DSN for goose migrations
 ENV LOCAL_MIGRATION_DSN="postgres://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}?sslmode=disable"

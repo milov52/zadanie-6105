@@ -22,7 +22,7 @@ func (s UserService) CreateUser(ctx context.Context, user domain.User) (domain.U
 	return s.repo.CreateUser(ctx, user)
 }
 
-func (s UserService) GetUser(ctx context.Context, username string) (domain.User, error) {
+func (s UserService) GetUser(ctx context.Context, username string) (*domain.User, error) {
 	return s.repo.GetUser(ctx, username)
 }
 

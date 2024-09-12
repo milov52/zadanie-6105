@@ -22,7 +22,6 @@ func Dial(dsn string) (*DB, error) {
 	if dsn == "" {
 		return nil, errors.New("not postgres DSN provider")
 	}
-
 	db := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)

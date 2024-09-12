@@ -2,8 +2,10 @@ package pgrepo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/jackc/pgx/v4"
 
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/domain"
@@ -38,22 +40,28 @@ func (r UserRepo) CreateUser(ctx context.Context, user domain.User) (domain.User
 	return domainUser, nil
 }
 
-func (r UserRepo) GetUser(ctx context.Context, username string) (domain.User, error) {
+func (r UserRepo) GetUser(ctx context.Context, username string) (*domain.User, error) {
 	var dbUser models.User
-	err := r.db.NewSelect().Model(&dbUser).Where("username = $1", username).Scan(ctx)
+
+	err := r.db.NewSelect().
+		Model((*models.User)(nil)).
+		Column("id", "organization_responsible.organization_id").
+		Join(`LEFT JOIN organization_responsible ON organization_responsible.user_id = "user".id`).
+		Where(`"user".username = ?`, username).
+		Scan(ctx, &dbUser)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.User{}, domain.ErrNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrNotFound
 		}
-		return domain.User{}, fmt.Errorf("failed to get user: %w", err)
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	user, err := userToDomain(dbUser)
 	if err != nil {
-		return domain.User{}, fmt.Errorf("failed to create domain user: %w", err)
+		return nil, fmt.Errorf("failed to create domain user: %w", err)
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (r UserRepo) GetUserByID(ctx context.Context, id int) (domain.User, error) {

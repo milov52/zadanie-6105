@@ -1,11 +1,15 @@
 package httpserver
 
 type HttpServer struct {
-	userService UserService
+	userService   UserService
+	tenderService TenderService
+	bidService    BidService
 }
 
-func NewHttpServer(userService UserService) HttpServer {
+func NewHttpServer(userService UserService, tenderService TenderService, bidService BidService) HttpServer {
 	return HttpServer{
-		userService: userService,
+		userService:   userService,
+		tenderService: tenderService,
+		bidService:    bidService,
 	}
 }

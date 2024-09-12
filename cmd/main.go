@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,14 +10,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang-migrate/migrate/v4"
 	"github.com/gorilla/mux"
 
+	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/common/server"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/config"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/repository/pgrepo"
+	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/services"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/transport/httpserver"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/pkg/pg"
-	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/services"
 )
 
 func main() {
@@ -37,27 +36,46 @@ func run() error {
 		return fmt.Errorf("pg.Dial failed: %w", err)
 	}
 
-	// run Postgres migrations
-	if pgDB != nil {
-		log.Println("Running PostgreSQL migrations")
-		if err := runMigrations(cfg.DSN, cfg.MigrationsPath); err != nil {
-			return fmt.Errorf("running migrations failed: %w", err)
-		}
-	}
-
 	// create repositories
 	userRepo := pgrepo.NewUserRepo(pgDB)
+	tenderRepo := pgrepo.NewTenderRepo(pgDB)
+	bidRepo := pgrepo.NewBidRepo(pgDB)
 
 	userService := services.NewUserService(userRepo)
+	tenderService := services.NewTenderService(tenderRepo)
+	bidService := services.NewBidService(bidRepo)
 
 	// create http server with application injected
-	httpServer := httpserver.NewHttpServer(userService)
+	httpServer := httpserver.NewHttpServer(userService, tenderService, bidService)
 
 	// create http router
 	router := mux.NewRouter()
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("Tenders API v0.1"))
-	}).Methods("GET")
+	apiRouter := router.PathPrefix("/api").Subrouter()
+
+	apiRouter.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		server.RespondOK("ok", w, r)
+	}).Methods(http.MethodGet)
+
+	tenderRouter := apiRouter.PathPrefix("/tenders").Subrouter()
+	tenderRouter.HandleFunc("", httpServer.GetTenders).Methods(http.MethodGet)
+	tenderRouter.HandleFunc("/new", httpServer.CreateTender).Methods(http.MethodPost)
+	tenderRouter.HandleFunc("/my", httpServer.GetUserTenders).Methods(http.MethodGet)
+	tenderRouter.HandleFunc("/{tenderId}/status", httpServer.GetTenderStatus).Methods(http.MethodGet)
+	tenderRouter.HandleFunc("/{tenderId}/status", httpServer.UpdateTenderStatus).Methods(http.MethodPut)
+	tenderRouter.HandleFunc("/{tenderId}/edit/", httpServer.UpdateTender).Methods(http.MethodPatch)
+	tenderRouter.HandleFunc("/{tenderId}/rollback/{version}", httpServer.RollbackVersion).Methods(http.MethodPut)
+
+	bidsRouter := apiRouter.PathPrefix("/bids").Subrouter()
+	bidsRouter.HandleFunc("/new", httpServer.CreateBid).Methods(http.MethodPost)
+	bidsRouter.HandleFunc("/my", httpServer.GetUserBids).Methods(http.MethodGet)
+	bidsRouter.HandleFunc("/{tenderID}/list", httpServer.GetTenderBids).Methods(http.MethodGet)
+	bidsRouter.HandleFunc("/{bidID}/status", httpServer.GetBidStatus).Methods(http.MethodGet)
+	bidsRouter.HandleFunc("/{bidID}/status", httpServer.UpdateBidStatus).Methods(http.MethodPut)
+	bidsRouter.HandleFunc("/{bidId}/edit/", httpServer.UpdateBid).Methods(http.MethodPatch)
+	bidsRouter.HandleFunc("/{bidId}/submit_decision/", httpServer.SubmitDecision).Methods(http.MethodPut)
+	bidsRouter.HandleFunc("/{bidId}/feedback/", httpServer.BidFeedback).Methods(http.MethodPut)
+	bidsRouter.HandleFunc("/{bidId}/rollback/{version}", httpServer.RollbackBidVersion).Methods(http.MethodPut)
+	bidsRouter.HandleFunc("/{tenderId}/reviews", httpServer.GetReviews).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Addr:    cfg.HTTPAddr,
@@ -87,25 +105,5 @@ func run() error {
 	<-stopped
 
 	log.Printf("Have a nice day!")
-	return nil
-}
-
-// runPgMigrations runs Postgres migrations
-func runMigrations(dsn, path string) error {
-	if path == "" {
-		return errors.New("no migrations path provided")
-	}
-	if dsn == "" {
-		return errors.New("no DSN provided")
-	}
-
-	m, err := migrate.New(path, dsn)
-	if err != nil {
-		return err
-	}
-
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return err
-	}
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 // UserService is a user service
 type UserService interface {
 	CreateUser(ctx context.Context, user domain.User) (domain.User, error)
-	GetUser(ctx context.Context, username string) (domain.User, error)
+	GetUser(ctx context.Context, username string) (*domain.User, error)
 	GetUserByID(ctx context.Context, id string) (domain.User, error)
 }
 

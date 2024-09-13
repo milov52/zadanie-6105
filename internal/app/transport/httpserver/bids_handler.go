@@ -69,7 +69,7 @@ func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.OrganizationID() != bidRequest.OrganizationId {
+	if user.OrganizationID().String() != bidRequest.OrganizationId {
 		server.NonAuthorised("user is not work in this organization", errors.New("organization mismatch"), w, r)
 		return
 	}
@@ -79,7 +79,7 @@ func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bidRequest.UserID = user.ID()
+	bidRequest.UserID = user.ID().String()
 	bid, err := toDomainBid(bidRequest)
 	if err != nil {
 		server.RespondWithError(err, w, r)
@@ -98,11 +98,7 @@ func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) GetTenderBids(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	tenderId, err := strconv.Atoi(vars["tenderId"])
-	if err != nil {
-		server.BadRequest("invalid-tenderId", err, w, r)
-		return
-	}
+	tenderId := vars["tenderId"]
 
 	user, ok := h.getUser(r, w, "username")
 	if !ok {
@@ -110,7 +106,7 @@ func (h HttpServer) GetTenderBids(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, offset := extractPagination(r)
 
-	bids, err := h.bidService.GetTenderBids(r.Context(), tenderId, user.ID(), limit, offset)
+	bids, err := h.bidService.GetTenderBids(r.Context(), tenderId, user.ID().String(), limit, offset)
 	if err != nil {
 		server.RespondWithError(err, w, r)
 		return
@@ -131,7 +127,7 @@ func (h HttpServer) GetUserBids(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, offset := extractPagination(r)
 
-	bids, err := h.bidService.GetUserBids(r.Context(), user.ID(), limit, offset)
+	bids, err := h.bidService.GetUserBids(r.Context(), user.ID().String(), limit, offset)
 	if err != nil {
 		server.RespondWithError(err, w, r)
 		return
@@ -147,11 +143,8 @@ func (h HttpServer) GetUserBids(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) GetBidStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bidID, err := strconv.Atoi(vars["bidId"])
-	if err != nil {
-		server.BadRequest("invalid-bid-id", err, w, r)
-		return
-	}
+	bidID := vars["bidId"]
+
 	status, err := h.bidService.GetBidStatus(r.Context(), bidID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -178,11 +171,7 @@ func (h HttpServer) UpdateBid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	bidID, err := strconv.Atoi(vars["bidId"])
-	if err != nil {
-		server.BadRequest("invalid-bid-id", err, w, r)
-		return
-	}
+	bidID := vars["bidId"]
 
 	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
 		server.NotFound("bid-not-found", err, w, r)
@@ -211,11 +200,7 @@ func (h HttpServer) UpdateBid(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) BidFeedback(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bidID, err := strconv.Atoi(vars["bidId"])
-	if err != nil {
-		server.BadRequest("invalid-bid-id", err, w, r)
-		return
-	}
+	bidID := vars["bidId"]
 
 	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
 		server.NotFound("bid-not-found", err, w, r)
@@ -229,7 +214,7 @@ func (h HttpServer) BidFeedback(w http.ResponseWriter, r *http.Request) {
 
 	feedback := r.URL.Query().Get("bidFeedback")
 	if feedback == "" || len(feedback) > 100 {
-		server.BadRequest("missing-feedback", err, w, r)
+		server.BadRequest("missing-feedback", errors.New("missing feedback"), w, r)
 		return
 	}
 
@@ -245,11 +230,7 @@ func (h HttpServer) BidFeedback(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bidID, err := strconv.Atoi(vars["bidId"])
-	if err != nil {
-		server.BadRequest("invalid-bid-id", err, w, r)
-		return
-	}
+	bidID := vars["bidId"]
 
 	_, ok := h.getUser(r, w, "username")
 	if !ok {
@@ -258,7 +239,7 @@ func (h HttpServer) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
 
 	status := r.URL.Query()["status"]
 	if status == nil || len(status) == 0 {
-		server.BadRequest("missing-status", err, w, r)
+		server.BadRequest("missing-status", errors.New("missing status"), w, r)
 		return
 	}
 
@@ -274,11 +255,7 @@ func (h HttpServer) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) SubmitDecision(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bidID, err := strconv.Atoi(vars["bidId"])
-	if err != nil {
-		server.BadRequest("invalid-bid-id", err, w, r)
-		return
-	}
+	bidID := vars["bidId"]
 
 	_, ok := h.getUser(r, w, "username")
 	if !ok {
@@ -286,7 +263,7 @@ func (h HttpServer) SubmitDecision(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decision := r.URL.Query()["decision"]
-	err = validateDecision(decision[0])
+	err := validateDecision(decision[0])
 	if err != nil {
 		server.BadRequest("invalid-decision", err, w, r)
 	}
@@ -303,11 +280,7 @@ func (h HttpServer) SubmitDecision(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) RollbackBidVersion(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bidID, err := strconv.Atoi(vars["bidId"])
-	if err != nil {
-		server.BadRequest("invalid-bid-id", err, w, r)
-		return
-	}
+	bidID := vars["bidId"]
 
 	version, err := strconv.Atoi(vars["version"])
 	if err != nil || version <= 0 {
@@ -332,11 +305,7 @@ func (h HttpServer) RollbackBidVersion(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) GetReviews(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	tenderID, err := strconv.Atoi(vars["tenderId"])
-	if err != nil {
-		server.BadRequest("invalid-tender-id", err, w, r)
-		return
-	}
+	tenderID := vars["tenderId"]
 
 	authorUsername, ok := h.getUser(r, w, "authorUsername")
 	if !ok {
@@ -350,7 +319,7 @@ func (h HttpServer) GetReviews(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := extractPagination(r)
 
-	bids, err := h.bidService.GetTenderBids(r.Context(), tenderID, authorUsername.ID(), limit, offset)
+	bids, err := h.bidService.GetTenderBids(r.Context(), tenderID, authorUsername.ID().String(), limit, offset)
 	if err != nil {
 		server.RespondWithError(err, w, r)
 		return

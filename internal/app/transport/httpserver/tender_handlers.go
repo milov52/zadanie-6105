@@ -36,12 +36,12 @@ func (h HttpServer) CreateTender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.OrganizationID() != tenderRequest.OrganizationId {
-		server.NonAuthorised("user is not work in this organization", err, w, r)
+	if user.OrganizationID().String() != tenderRequest.OrganizationId {
+		server.Forbidden("user is not work in this organization", err, w, r)
 		return
 	}
 
-	tenderRequest.UserID = user.ID()
+	tenderRequest.UserID = user.ID().String()
 	tender, err := toDomainTender(tenderRequest)
 	if err != nil {
 		server.RespondWithError(err, w, r)
@@ -64,18 +64,31 @@ func (h HttpServer) GetTenders(w http.ResponseWriter, r *http.Request) {
 
 	var serviceTypes []string
 	for _, serviceType := range queryServiceTypes {
+		err := validateTenderServiceType(serviceType)
+		if err != nil {
+			if errors.Is(err, domain.ErrNegative) {
+				server.BadRequest("wrong service type", err, w, r)
+				return
+			}
+		}
 		serviceTypes = append(serviceTypes, serviceType)
 	}
 
-	// page
-	page, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil {
-		page = 1
+	// limit
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || limit > 50 {
+		server.BadRequest("wrong limit", err, w, r)
+		return
 	}
-	var limit, offset int
-	if page > 0 {
+	if limit == 0 {
 		limit = 5
-		offset = (page - 1) * limit
+	}
+
+	// offset
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		server.BadRequest("wrong offset", err, w, r)
+		return
 	}
 
 	tenders, err := h.tenderService.GetTenders(r.Context(), serviceTypes, limit, offset)
@@ -106,18 +119,24 @@ func (h HttpServer) GetUserTenders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// page
-	page, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil {
-		page = 1
+	// limit
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || limit > 50 {
+		server.BadRequest("wrong limit", err, w, r)
+		return
 	}
-	var limit, offset int
-	if page > 0 {
+	if limit == 0 {
 		limit = 5
-		offset = (page - 1) * limit
 	}
 
-	tenders, err := h.tenderService.GetUserTenders(r.Context(), user.ID(), limit, offset)
+	// offset
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		server.BadRequest("wrong offset", err, w, r)
+		return
+	}
+
+	tenders, err := h.tenderService.GetUserTenders(r.Context(), user.ID().String(), limit, offset)
 	if err != nil {
 		server.RespondWithError(err, w, r)
 		return
@@ -133,11 +152,25 @@ func (h HttpServer) GetUserTenders(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) GetTenderStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	tenderID, err := strconv.Atoi(vars["tenderId"])
-	if err != nil {
-		server.BadRequest("invalid-tender-id", err, w, r)
+	tenderID := vars["tenderId"]
+
+	// Get user
+	username := r.URL.Query()["username"]
+	if username == nil || len(username) == 0 {
+		server.BadRequest("missing-username", errors.New("missing_username"), w, r)
 		return
 	}
+
+	_, err := h.userService.GetUser(r.Context(), username[0])
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			server.NonAuthorised("user-not-found", err, w, r)
+			return
+		}
+		server.RespondWithError(err, w, r)
+		return
+	}
+
 	status, err := h.tenderService.GetTenderStatus(r.Context(), tenderID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
@@ -164,24 +197,21 @@ func (h HttpServer) UpdateTender(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	tenderID, err := strconv.Atoi(vars["tenderId"])
-	if err != nil {
-		server.BadRequest("invalid-tender-id", err, w, r)
-		return
-	}
+	tenderID := vars["tenderId"]
 
-	if _, err := h.tenderService.GetTenderByID(r.Context(), tenderID); err != nil {
+	tender, err := h.tenderService.GetTenderByID(r.Context(), tenderID)
+	if err != nil {
 		server.NotFound("tender-not-found", err, w, r)
 		return
 	}
 
 	username := r.URL.Query()["username"]
 	if username == nil || len(username) == 0 {
-		server.BadRequest("missing-username", err, w, r)
+		server.BadRequest("missing-username", errors.New("missing_username"), w, r)
 		return
 	}
 
-	_, err = h.userService.GetUser(r.Context(), username[0])
+	user, err := h.userService.GetUser(r.Context(), username[0])
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			server.NotFound("user-not-found", err, w, r)
@@ -191,12 +221,19 @@ func (h HttpServer) UpdateTender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tender, err := toDomainUpdateTender(updateRequest)
+	if tender.UserID() != user.ID() {
+		server.Forbidden("not user tender", err, w, r)
+		return
+	}
+
+	updateRequest.ID = tender.ID()
+	domainTender, err := toDomainUpdateTender(updateRequest)
 	if err != nil {
 		server.RespondWithError(err, w, r)
 		return
 	}
-	updatedTender, err := h.tenderService.UpdateTender(r.Context(), tender)
+
+	updatedTender, err := h.tenderService.UpdateTender(r.Context(), domainTender)
 	if err != nil {
 		server.RespondWithError(err, w, r)
 		return
@@ -207,22 +244,44 @@ func (h HttpServer) UpdateTender(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HttpServer) UpdateTenderStatus(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenderID, err := strconv.Atoi(vars["tenderId"])
-	if err != nil {
-		server.BadRequest("invalid-tender-id", err, w, r)
+	username := r.URL.Query()["username"]
+	if username == nil || len(username) == 0 {
+		server.BadRequest("missing-username", errors.New("missing username"), w, r)
 		return
 	}
 
-	username := r.URL.Query()["username"]
-	if username == nil || len(username) == 0 {
-		server.BadRequest("missing-username", err, w, r)
+	user, err := h.userService.GetUser(r.Context(), username[0])
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			server.NonAuthorised("user-not-found", err, w, r)
+			return
+		}
+		server.RespondWithError(err, w, r)
+		return
+	}
+
+	vars := mux.Vars(r)
+	tenderID := vars["tenderId"]
+
+	tender, err := h.tenderService.GetTenderByID(r.Context(), tenderID)
+	if err != nil {
+		server.NotFound("tender-not-found", err, w, r)
+		return
+	}
+
+	if tender.UserID() != user.ID() {
+		server.Forbidden("not user tenders", err, w, r)
 		return
 	}
 
 	status := r.URL.Query()["status"]
 	if status == nil || len(status) == 0 {
-		server.BadRequest("missing-status", err, w, r)
+		server.BadRequest("missing-status", errors.New("missing status"), w, r)
+		return
+	}
+	err = validateTenderStatus(status[0])
+	if err != nil {
+		server.BadRequest("invalid-status", err, w, r)
 		return
 	}
 
@@ -238,21 +297,37 @@ func (h HttpServer) UpdateTenderStatus(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) RollbackVersion(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	tenderID, err := strconv.Atoi(vars["tenderId"])
+	tenderID := vars["tenderId"]
+	tender, err := h.tenderService.GetTenderByID(r.Context(), tenderID)
 	if err != nil {
-		server.BadRequest("invalid-tender-id", err, w, r)
-		return
-	}
-
-	version, err := strconv.Atoi(vars["version"])
-	if err != nil || version <= 0 {
-		server.BadRequest("invalid version", err, w, r)
+		server.NotFound("tender-not-found", err, w, r)
 		return
 	}
 
 	username := r.URL.Query()["username"]
 	if username == nil || len(username) == 0 {
 		server.BadRequest("missing-username", err, w, r)
+		return
+	}
+
+	user, err := h.userService.GetUser(r.Context(), username[0])
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			server.NonAuthorised("user-not-found", err, w, r)
+			return
+		}
+		server.RespondWithError(err, w, r)
+		return
+	}
+
+	if tender.UserID() != user.ID() {
+		server.Forbidden("not user tenders", err, w, r)
+		return
+	}
+
+	version, err := strconv.Atoi(vars["version"])
+	if err != nil || version <= 0 {
+		server.BadRequest("invalid version", err, w, r)
 		return
 	}
 

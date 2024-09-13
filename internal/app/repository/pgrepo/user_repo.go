@@ -64,7 +64,7 @@ func (r UserRepo) GetUser(ctx context.Context, username string) (*domain.User, e
 	return &user, nil
 }
 
-func (r UserRepo) GetUserByID(ctx context.Context, id int) (domain.User, error) {
+func (r UserRepo) GetUserByID(ctx context.Context, id string) (domain.User, error) {
 	var dbUser models.User
 	err := r.db.NewSelect().Model(&dbUser).Where("id = ?", id).Scan(ctx)
 	if err != nil {

@@ -18,19 +18,19 @@ func (s BidService) CreateBid(ctx context.Context, bid domain.Bid) (domain.Bid, 
 	return s.repo.CreateBid(ctx, bid)
 }
 
-func (s BidService) GetUserBids(ctx context.Context, userID int, limit, offset int) ([]domain.Bid, error) {
+func (s BidService) GetUserBids(ctx context.Context, userID string, limit, offset int) ([]domain.Bid, error) {
 	return s.repo.GetUserBids(ctx, userID, limit, offset)
 }
 
-func (s BidService) GetTenderBids(ctx context.Context, tenderID, userID, limit, offset int) ([]domain.Bid, error) {
+func (s BidService) GetTenderBids(ctx context.Context, tenderID, userID string, limit, offset int) ([]domain.Bid, error) {
 	return s.repo.GetTenderBids(ctx, tenderID, userID, limit, offset)
 }
 
-func (s BidService) GetBidStatus(ctx context.Context, id int) (string, error) {
+func (s BidService) GetBidStatus(ctx context.Context, id string) (string, error) {
 	return s.repo.GetBidStatus(ctx, id)
 }
 
-func (s BidService) GetBidByID(ctx context.Context, bidID int) (domain.Bid, error) {
+func (s BidService) GetBidByID(ctx context.Context, bidID string) (domain.Bid, error) {
 	return s.repo.GetBidByID(ctx, bidID)
 }
 
@@ -38,18 +38,18 @@ func (s BidService) UpdateBid(ctx context.Context, tender domain.Bid) (domain.Bi
 	return s.repo.UpdateBid(ctx, tender)
 }
 
-func (s BidService) UpdateBidStatus(ctx context.Context, id int, status string) (domain.Bid, error) {
+func (s BidService) UpdateBidStatus(ctx context.Context, id, status string) (domain.Bid, error) {
 	return s.repo.UpdateBidStatus(ctx, id, status)
 }
 
-func (s BidService) UpdateBidDescription(ctx context.Context, id int, desc string) (domain.Bid, error) {
+func (s BidService) UpdateBidDescription(ctx context.Context, id, desc string) (domain.Bid, error) {
 	return s.repo.UpdateBidDescription(ctx, id, desc)
 }
 
-func (s BidService) RollbackBidVersion(ctx context.Context, id, version int) (domain.Bid, error) {
+func (s BidService) RollbackBidVersion(ctx context.Context, id string, version int) (domain.Bid, error) {
 	return s.repo.RollbackBidVersion(ctx, id, version)
 }
 
-func (s BidService) GetReviews(ctx context.Context, tenderID, userID, limit, offset int) ([]domain.Bid, error) {
+func (s BidService) GetReviews(ctx context.Context, tenderID, userID string, limit, offset int) ([]domain.Bid, error) {
 	return s.repo.GetReviews(ctx, tenderID, userID, limit, offset)
 }

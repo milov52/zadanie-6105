@@ -2,10 +2,10 @@ package pgrepo
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/uptrace/bun"
 
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/domain"
@@ -72,7 +72,7 @@ func (r TenderRepo) GetTenders(ctx context.Context, serviceType []string, limit,
 	return domainTenders, nil
 }
 
-func (r TenderRepo) GetTenderByID(ctx context.Context, tenderID int) (domain.Tender, error) {
+func (r TenderRepo) GetTenderByID(ctx context.Context, tenderID string) (domain.Tender, error) {
 	var tender models.Tender
 	const statusClosed = "Closed"
 	query := r.db.NewSelect().Model(&tender).
@@ -87,7 +87,7 @@ func (r TenderRepo) GetTenderByID(ctx context.Context, tenderID int) (domain.Ten
 	return domainTender, nil
 }
 
-func (r TenderRepo) GetUserTenders(ctx context.Context, userID, limit, offset int) ([]domain.Tender, error) {
+func (r TenderRepo) GetUserTenders(ctx context.Context, userID string, limit, offset int) ([]domain.Tender, error) {
 	var tenders []models.Tender
 
 	query := r.db.NewSelect().Model(&tenders)
@@ -117,7 +117,7 @@ func (r TenderRepo) GetUserTenders(ctx context.Context, userID, limit, offset in
 	return domainTenders, nil
 }
 
-func (r TenderRepo) GetTenderStatus(ctx context.Context, id int) (string, error) {
+func (r TenderRepo) GetTenderStatus(ctx context.Context, id string) (string, error) {
 	var status string
 	err := r.db.NewSelect().
 		Model((*models.Tender)(nil)).
@@ -126,7 +126,7 @@ func (r TenderRepo) GetTenderStatus(ctx context.Context, id int) (string, error)
 		Scan(ctx, &status)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return "", domain.ErrNotFound
 		}
 		return "", fmt.Errorf("failed to get tender status: %w", err)
@@ -135,7 +135,7 @@ func (r TenderRepo) GetTenderStatus(ctx context.Context, id int) (string, error)
 	return status, nil
 }
 
-func (r TenderRepo) UpdateTenderStatus(ctx context.Context, id int, status string) (domain.Tender, error) {
+func (r TenderRepo) UpdateTenderStatus(ctx context.Context, id, status string) (domain.Tender, error) {
 	var updatedTender models.Tender
 
 	err := r.db.NewUpdate().
@@ -164,7 +164,10 @@ func (r TenderRepo) UpdateTender(ctx context.Context, tender domain.Tender) (dom
 		Model(&dbTender).
 		Where("id = ?", dbTender.ID).
 		Set("version = version + 1").
-		ExcludeColumn("status", "organization_id, version, created_at").
+		Set("name = ?", dbTender.Name).
+		Set("description = ?", dbTender.Description).
+		Set("service_type = ?", dbTender.ServiceType).
+		//ExcludeColumn("status", "organization_id", "version", "created_at").
 		Returning("*").
 		Scan(ctx, &updatedTender)
 
@@ -180,7 +183,7 @@ func (r TenderRepo) UpdateTender(ctx context.Context, tender domain.Tender) (dom
 	return domainTender, nil
 }
 
-func (r TenderRepo) RollbackVersion(ctx context.Context, tenderID, version int) (domain.Tender, error) {
+func (r TenderRepo) RollbackVersion(ctx context.Context, tenderID string, version int) (domain.Tender, error) {
 	var updatedTender models.Tender
 
 	err := r.db.NewUpdate().

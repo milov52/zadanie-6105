@@ -62,7 +62,7 @@ func run() error {
 	tenderRouter.HandleFunc("/my", httpServer.GetUserTenders).Methods(http.MethodGet)
 	tenderRouter.HandleFunc("/{tenderId}/status", httpServer.GetTenderStatus).Methods(http.MethodGet)
 	tenderRouter.HandleFunc("/{tenderId}/status", httpServer.UpdateTenderStatus).Methods(http.MethodPut)
-	tenderRouter.HandleFunc("/{tenderId}/edit/", httpServer.UpdateTender).Methods(http.MethodPatch)
+	tenderRouter.HandleFunc("/{tenderId}/edit", httpServer.UpdateTender).Methods(http.MethodPatch)
 	tenderRouter.HandleFunc("/{tenderId}/rollback/{version}", httpServer.RollbackVersion).Methods(http.MethodPut)
 
 	bidsRouter := apiRouter.PathPrefix("/bids").Subrouter()
@@ -71,9 +71,9 @@ func run() error {
 	bidsRouter.HandleFunc("/{tenderID}/list", httpServer.GetTenderBids).Methods(http.MethodGet)
 	bidsRouter.HandleFunc("/{bidID}/status", httpServer.GetBidStatus).Methods(http.MethodGet)
 	bidsRouter.HandleFunc("/{bidID}/status", httpServer.UpdateBidStatus).Methods(http.MethodPut)
-	bidsRouter.HandleFunc("/{bidId}/edit/", httpServer.UpdateBid).Methods(http.MethodPatch)
-	bidsRouter.HandleFunc("/{bidId}/submit_decision/", httpServer.SubmitDecision).Methods(http.MethodPut)
-	bidsRouter.HandleFunc("/{bidId}/feedback/", httpServer.BidFeedback).Methods(http.MethodPut)
+	bidsRouter.HandleFunc("/{bidId}/edit", httpServer.UpdateBid).Methods(http.MethodPatch)
+	bidsRouter.HandleFunc("/{bidId}/submit_decision", httpServer.SubmitDecision).Methods(http.MethodPut)
+	bidsRouter.HandleFunc("/{bidId}/feedback", httpServer.BidFeedback).Methods(http.MethodPut)
 	bidsRouter.HandleFunc("/{bidId}/rollback/{version}", httpServer.RollbackBidVersion).Methods(http.MethodPut)
 	bidsRouter.HandleFunc("/{tenderId}/reviews", httpServer.GetReviews).Methods(http.MethodGet)
 

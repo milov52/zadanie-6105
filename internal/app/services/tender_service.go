@@ -22,26 +22,26 @@ func (s TenderService) GetTenders(ctx context.Context, serviceType []string, lim
 	return s.repo.GetTenders(ctx, serviceType, limit, offset)
 }
 
-func (s TenderService) GetUserTenders(ctx context.Context, userID int, limit, offset int) ([]domain.Tender, error) {
+func (s TenderService) GetUserTenders(ctx context.Context, userID string, limit, offset int) ([]domain.Tender, error) {
 	return s.repo.GetUserTenders(ctx, userID, limit, offset)
 }
 
-func (s TenderService) GetTenderStatus(ctx context.Context, id int) (string, error) {
+func (s TenderService) GetTenderStatus(ctx context.Context, id string) (string, error) {
 	return s.repo.GetTenderStatus(ctx, id)
 }
 
-func (s TenderService) GetTenderByID(ctx context.Context, tenderID int) (domain.Tender, error) {
-	return s.GetTenderByID(ctx, tenderID)
+func (s TenderService) GetTenderByID(ctx context.Context, tenderID string) (domain.Tender, error) {
+	return s.repo.GetTenderByID(ctx, tenderID)
 }
 
 func (s TenderService) UpdateTender(ctx context.Context, tender domain.Tender) (domain.Tender, error) {
 	return s.repo.UpdateTender(ctx, tender)
 }
 
-func (s TenderService) UpdateTenderStatus(ctx context.Context, id int, status string) (domain.Tender, error) {
+func (s TenderService) UpdateTenderStatus(ctx context.Context, id, status string) (domain.Tender, error) {
 	return s.repo.UpdateTenderStatus(ctx, id, status)
 }
 
-func (s TenderService) RollbackVersion(ctx context.Context, tenderID, version int) (domain.Tender, error) {
+func (s TenderService) RollbackVersion(ctx context.Context, tenderID string, version int) (domain.Tender, error) {
 	return s.repo.RollbackVersion(ctx, tenderID, version)
 }

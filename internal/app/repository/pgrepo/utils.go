@@ -67,12 +67,14 @@ func bidToDomain(bid models.Bid) (domain.Bid, error) {
 
 func tenderToDomain(tender models.Tender) (domain.Tender, error) {
 	return domain.NewTender(domain.NewTenderData{
-		ID:          tender.ID,
-		Name:        tender.Name,
-		Description: tender.Description,
-		ServiceType: tender.ServiceType,
-		Status:      tender.Status,
-		Version:     tender.Version,
-		CreatedAt:   tender.CreatedAt,
+		ID:             tender.ID,
+		Name:           tender.Name,
+		Description:    tender.Description,
+		ServiceType:    tender.ServiceType,
+		OrganizationId: tender.OrganizationId,
+		Status:         tender.Status,
+		Version:        tender.Version,
+		CreatedAt:      tender.CreatedAt,
+		UserId:         tender.UserId,
 	})
 }

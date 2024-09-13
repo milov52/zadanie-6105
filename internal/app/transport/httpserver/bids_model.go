@@ -10,18 +10,18 @@ type BidRequest struct {
 	Name            string `json:"name"`
 	Description     string `json:"description"`
 	Status          string `json:"status"`
-	TenderId        int    `json:"tenderId"`
-	OrganizationId  int    `json:"organizationId"`
+	TenderId        string `json:"tenderId"`
+	OrganizationId  string `json:"organizationId"`
 	CreatorUsername string `json:"creatorUsername"`
-	UserID          int
+	UserID          string
 }
 
 type BidResponse struct {
-	ID         int       `json:"id"`
+	ID         string    `json:"id"`
 	Name       string    `json:"name"`
 	Status     string    `json:"status"`
 	AuthorType string    `json:"authorType"`
-	AuthorId   int       `json:"authorId"`
+	AuthorId   string    `json:"authorId"`
 	Version    int32     `json:"version"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
@@ -64,8 +64,8 @@ func (r *BidRequest) Validate() error {
 	if r.Description == "" || len(r.Name) > 500 {
 		return fmt.Errorf("%w: description", domain.ErrNegative)
 	}
-	if r.TenderId <= 0 {
-		return fmt.Errorf("%w: tenderId", domain.ErrNegative)
+	if r.TenderId == "" || len(r.Name) > 100 {
+		return fmt.Errorf("%w: organizationId", domain.ErrNegative)
 	}
 
 	if err := validateBidStatus(r.Status); err != nil {

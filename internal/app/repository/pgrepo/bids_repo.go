@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/jackc/pgx/v4"
 	"github.com/uptrace/bun"
 
@@ -14,18 +13,28 @@ import (
 )
 
 type BidRepo struct {
-	db *pg.DB
+	db    *pg.DB
+	param Params
+}
+
+type Params struct {
+	ID       string
+	UserID   string
+	TenderID string
+	Limit    int
+	Offset   int
 }
 
 func NewBidRepo(db *pg.DB) *BidRepo {
 	return &BidRepo{
-		db: db,
+		db:    db,
+		param: Params{},
 	}
 }
 
 // Вспомогательная функция для проверки и добавления условий
-func addWhereCondition(query *bun.SelectQuery, field string, params map[string]int) {
-	if value, ok := params[field]; ok {
+func addWhereCondition(query *bun.SelectQuery, field string, value any) {
+	if value != nil {
 		query.Where(fmt.Sprintf("%s = ?", field), value)
 	}
 }
@@ -47,21 +56,19 @@ func (r BidRepo) CreateBid(ctx context.Context, b domain.Bid) (domain.Bid, error
 	return domainBid, nil
 }
 
-func (r BidRepo) getBids(ctx context.Context, params map[string]int) ([]domain.Bid, error) {
+func (r BidRepo) getBids(ctx context.Context) ([]domain.Bid, error) {
 	var bids []models.Bid
 
 	query := r.db.NewSelect().Model(&bids)
+	addWhereCondition(query, "author_id", r.param.UserID)
+	addWhereCondition(query, "tender_id", r.param.TenderID)
+	addWhereCondition(query, "id", r.param.ID)
 
-	addWhereCondition(query, "author_id", params)
-	addWhereCondition(query, "tender_id", params)
-	addWhereCondition(query, "id", params)
-
-	if limit, ok := params["limit"]; ok && limit > 0 {
-		query.Limit(limit)
+	if r.param.Limit > 0 {
+		query.Limit(r.param.Limit)
 	}
-
-	if offset, ok := params["offset"]; ok && offset > 0 {
-		query.Offset(offset)
+	if r.param.Offset > 0 {
+		query.Offset(r.param.Offset)
 	}
 
 	query.Order("name")
@@ -82,34 +89,31 @@ func (r BidRepo) getBids(ctx context.Context, params map[string]int) ([]domain.B
 	return domainBids, nil
 }
 
-func (r BidRepo) GetUserBids(ctx context.Context, userID, limit, offset int) ([]domain.Bid, error) {
-	params := map[string]int{
-		"author_id": userID,
-		"limit":     limit,
-		"offset":    offset,
-	}
-	return r.getBids(ctx, params)
+func (r BidRepo) GetUserBids(ctx context.Context, userID string, limit, offset int) ([]domain.Bid, error) {
+	r.param.UserID = userID
+	r.param.Limit = limit
+	r.param.Offset = offset
+
+	return r.getBids(ctx)
 }
 
-func (r BidRepo) GetTenderBids(ctx context.Context, tenderID, userID, limit, offset int) ([]domain.Bid, error) {
-	params := map[string]int{
-		"author_id": userID,
-		"tender_id": tenderID,
-		"limit":     limit,
-		"offset":    offset,
-	}
-	return r.getBids(ctx, params)
+func (r BidRepo) GetTenderBids(ctx context.Context, tenderID, userID string, limit, offset int) ([]domain.Bid, error) {
+	r.param.UserID = userID
+	r.param.TenderID = tenderID
+	r.param.Limit = limit
+	r.param.Offset = offset
+
+	return r.getBids(ctx)
 }
 
-func (r BidRepo) GetBidByID(ctx context.Context, bidID int) (domain.Bid, error) {
-	params := map[string]int{
-		"id": bidID,
-	}
-	bids, err := r.getBids(ctx, params)
+func (r BidRepo) GetBidByID(ctx context.Context, bidID string) (domain.Bid, error) {
+	r.param.ID = bidID
+
+	bids, err := r.getBids(ctx)
 	return bids[0], err
 }
 
-func (r BidRepo) GetBidStatus(ctx context.Context, id int) (string, error) {
+func (r BidRepo) GetBidStatus(ctx context.Context, id string) (string, error) {
 	var status string
 	err := r.db.NewSelect().
 		Model((*models.Bid)(nil)).
@@ -127,7 +131,7 @@ func (r BidRepo) GetBidStatus(ctx context.Context, id int) (string, error) {
 	return status, nil
 }
 
-func (r BidRepo) UpdateBidStatus(ctx context.Context, id int, status string) (domain.Bid, error) {
+func (r BidRepo) UpdateBidStatus(ctx context.Context, id, status string) (domain.Bid, error) {
 	var updatedBid models.Bid
 
 	err := r.db.NewUpdate().
@@ -148,7 +152,7 @@ func (r BidRepo) UpdateBidStatus(ctx context.Context, id int, status string) (do
 	return domainBid, nil
 }
 
-func (r BidRepo) UpdateBidDescription(ctx context.Context, id int, desc string) (domain.Bid, error) {
+func (r BidRepo) UpdateBidDescription(ctx context.Context, id, desc string) (domain.Bid, error) {
 	var updatedBid models.Bid
 
 	err := r.db.NewUpdate().
@@ -193,7 +197,7 @@ func (r BidRepo) UpdateBid(ctx context.Context, bid domain.Bid) (domain.Bid, err
 	return domainBid, nil
 }
 
-func (r BidRepo) RollbackBidVersion(ctx context.Context, bidID, version int) (domain.Bid, error) {
+func (r BidRepo) RollbackBidVersion(ctx context.Context, bidID string, version int) (domain.Bid, error) {
 	var updatedBid models.Bid
 
 	err := r.db.NewUpdate().
@@ -214,12 +218,11 @@ func (r BidRepo) RollbackBidVersion(ctx context.Context, bidID, version int) (do
 	return domainBid, nil
 }
 
-func (r BidRepo) GetReviews(ctx context.Context, tenderID, userID, limit, offset int) ([]domain.Bid, error) {
-	params := map[string]int{
-		"tender_id": tenderID,
-		"author_id": userID,
-		"limit":     limit,
-		"offset":    offset,
-	}
-	return r.getBids(ctx, params)
+func (r BidRepo) GetReviews(ctx context.Context, tenderID, userID string, limit, offset int) ([]domain.Bid, error) {
+	r.param.UserID = userID
+	r.param.TenderID = tenderID
+	r.param.Limit = limit
+	r.param.Offset = offset
+
+	return r.getBids(ctx)
 }

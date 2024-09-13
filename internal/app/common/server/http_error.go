@@ -26,8 +26,12 @@ func NonAuthorised(slug string, err error, w http.ResponseWriter, r *http.Reques
 	httpRespondWithError(err, slug, w, r, "NonAuthorised", http.StatusUnauthorized)
 }
 
+func Forbidden(slug string, err error, w http.ResponseWriter, r *http.Request) {
+	httpRespondWithError(err, slug, w, r, "NonAuthorised", http.StatusForbidden)
+}
+
 func NotFound(slug string, err error, w http.ResponseWriter, r *http.Request) {
-	httpRespondWithError(err, slug, w, r, "Not found", http.StatusBadRequest)
+	httpRespondWithError(err, slug, w, r, "Not found", http.StatusNotFound)
 }
 
 func RespondWithError(err error, w http.ResponseWriter, r *http.Request) {
@@ -52,7 +56,7 @@ func RespondWithError(err error, w http.ResponseWriter, r *http.Request) {
 func httpRespondWithError(err error, slug string, w http.ResponseWriter, r *http.Request, msg string, status int) {
 	log.Printf("error: %s, slug: %s, msg: %s", err, slug, msg)
 
-	resp := ErrorResponse{Slug: slug, httpStatus: status}
+	resp := ErrorResponse{Reason: slug, httpStatus: status}
 	if os.Getenv("DEBUG_ERRORS") != "" && err != nil {
 		resp.Error = err.Error()
 	}
@@ -63,7 +67,7 @@ func httpRespondWithError(err error, slug string, w http.ResponseWriter, r *http
 }
 
 type ErrorResponse struct {
-	Slug       string `json:"slug"`
+	Reason     string `json:"reason"`
 	Error      string `json:"error,omitempty"`
 	httpStatus int
 }

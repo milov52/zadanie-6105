@@ -1,20 +1,22 @@
 package domain
 
+import "github.com/google/uuid"
+
 // User is a domain User.
 type User struct {
-	id             int
+	id             uuid.UUID
 	username       string
 	firstName      string
 	lastName       string
-	organizationID int
+	organizationID uuid.UUID
 }
 
 type NewUserData struct {
-	ID             int
+	ID             uuid.UUID
 	Username       string
 	FirstName      string
 	LastName       string
-	OrganizationID int
+	OrganizationID uuid.UUID
 }
 
 // NewUser creates a new user.
@@ -28,7 +30,7 @@ func NewUser(data NewUserData) (User, error) {
 	}, nil
 }
 
-func (u User) ID() int { return u.id }
+func (u User) ID() uuid.UUID { return u.id }
 
 func (u User) Username() string { return u.username }
 
@@ -36,4 +38,4 @@ func (u User) FirstName() string { return u.firstName }
 
 func (u User) LastName() string { return u.lastName }
 
-func (u User) OrganizationID() int { return u.organizationID }
+func (u User) OrganizationID() uuid.UUID { return u.organizationID }

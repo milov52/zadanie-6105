@@ -3,6 +3,7 @@ package httpserver
 import (
 	"fmt"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/domain"
+	"github.com/google/uuid"
 	"time"
 )
 
@@ -11,9 +12,9 @@ type TenderRequest struct {
 	Description     string `json:"description"`
 	ServiceType     string `json:"serviceType"`
 	Status          string `json:"status"`
-	OrganizationId  int    `json:"organizationId"`
+	OrganizationId  string `json:"organizationId"`
 	CreatorUsername string `json:"creatorUsername"`
-	UserID          int
+	UserID          string
 }
 
 type TenderResponse struct {
@@ -28,6 +29,7 @@ type TenderResponse struct {
 }
 
 type UpdateTenderRequest struct {
+	ID          uuid.UUID
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	ServiceType string `json:"serviceType"`
@@ -73,12 +75,10 @@ func (r *TenderRequest) Validate() error {
 	if err := validateTenderServiceType(r.ServiceType); err != nil {
 		return err
 	}
-	if err := validateTenderStatus(r.Status); err != nil {
-		return err
+
+	if r.OrganizationId == "" || len(r.Name) > 100 {
+		return fmt.Errorf("%w: organizationId", domain.ErrNegative)
 	}
-	//if r.OrganizationId == "" || len(r.Name) > 100 {
-	//	return fmt.Errorf("%w: organizationId", domain.ErrNegative)
-	//}
 	return nil
 }
 

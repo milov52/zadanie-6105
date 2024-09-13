@@ -26,6 +26,6 @@ func (s UserService) GetUser(ctx context.Context, username string) (*domain.User
 	return s.repo.GetUser(ctx, username)
 }
 
-func (s UserService) GetUserByID(ctx context.Context, id int) (domain.User, error) {
+func (s UserService) GetUserByID(ctx context.Context, id string) (domain.User, error) {
 	return s.repo.GetUserByID(ctx, id)
 }

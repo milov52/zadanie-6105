@@ -42,7 +42,7 @@ CREATE TYPE tender_status AS ENUM (
     );
 
 CREATE TABLE IF NOT EXISTS tender (
-                        id UUID PRIMARY KEY,
+                        id UUID PRIMARY KEY default 'uuid_generate_v4()',
                         name VARCHAR(100) NOT NULL,
                         description VARCHAR(500) NOT NULL,
                         service_type service_type,
@@ -68,7 +68,7 @@ CREATE TYPE author_type AS ENUM (
     );
 
 CREATE TABLE IF NOT EXISTS bid (
-                      id UUID PRIMARY KEY,
+                      id UUID PRIMARY KEY default 'uuid_generate_v4()',
                       name VARCHAR(100) NOT NULL,
                       description VARCHAR(500) NOT NULL,
                       status bild_status,

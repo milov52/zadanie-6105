@@ -277,18 +277,26 @@ func (h HttpServer) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
 func (h HttpServer) SubmitDecision(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bidID := vars["bidId"]
-	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
+	bid, err := h.bidService.GetBidByID(r.Context(), bidID)
+	if err != nil {
 		server.NotFound("bid-not-found", err, w, r)
 		return
 	}
 
-	_, ok := h.getUser(r, w, "username")
+	user, ok := h.getUser(r, w, "username")
 	if !ok {
 		return
 	}
 
+	author, _ := h.userService.GetUserByID(r.Context(), bid.AuthorId().String())
+
+	if author.OrganizationID() != user.OrganizationID() {
+		server.Forbidden("user don't have permissions ", err, w, r)
+		return
+	}
+
 	decision := r.URL.Query()["decision"]
-	err := validateDecision(decision[0])
+	err = validateDecision(decision[0])
 	if err != nil {
 		server.BadRequest("invalid-decision", err, w, r)
 	}

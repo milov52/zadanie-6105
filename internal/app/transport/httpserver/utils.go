@@ -20,13 +20,15 @@ func toResponseTender(tender domain.Tender) TenderResponse {
 
 func toResponseBid(bid domain.Bid) BidResponse {
 	return BidResponse{
-		ID:         bid.ID().String(),
-		Name:       bid.Name(),
-		Status:     bid.Status(),
-		AuthorType: bid.AuthorType(),
-		AuthorId:   bid.AuthorId().String(),
-		Version:    bid.Version(),
-		CreatedAt:  bid.CreatedAt(),
+		ID:          bid.ID().String(),
+		Name:        bid.Name(),
+		Description: bid.Description(),
+		Status:      bid.Status(),
+		TenderId:    bid.TendedId().String(),
+		AuthorType:  bid.AuthorType(),
+		AuthorId:    bid.AuthorId().String(),
+		Version:     bid.Version(),
+		CreatedAt:   bid.CreatedAt(),
 	}
 }
 
@@ -51,26 +53,21 @@ func toDomainTender(tenderRequest TenderRequest) (domain.Tender, error) {
 }
 
 func toDomainBid(bidRequest BidRequest) (domain.Bid, error) {
-	organizationID, err := uuid.Parse(bidRequest.OrganizationId)
-	if err != nil {
-		return domain.Bid{}, err
-	}
 	tenderId, err := uuid.Parse(bidRequest.TenderId)
 	if err != nil {
 		return domain.Bid{}, err
 	}
-	userId, err := uuid.Parse(bidRequest.UserID)
+	userId, err := uuid.Parse(bidRequest.AuthorId)
 	if err != nil {
 		return domain.Bid{}, err
 	}
 
 	return domain.NewBid(domain.NewBidData{
-		Name:            bidRequest.Name,
-		Description:     bidRequest.Description,
-		TenderId:        tenderId,
-		OrganizationId:  organizationID,
-		CreatorUsername: bidRequest.CreatorUsername,
-		AuthorId:        userId,
+		Name:        bidRequest.Name,
+		Description: bidRequest.Description,
+		TenderId:    tenderId,
+		AuthorType:  bidRequest.AuthorType,
+		AuthorId:    userId,
 	})
 }
 
@@ -84,7 +81,12 @@ func toDomainUpdateTender(tenderRequest UpdateTenderRequest) (domain.Tender, err
 }
 
 func toDomainUpdateBid(bidRequest UpdateBidRequest) (domain.Bid, error) {
+	bidID, err := uuid.Parse(bidRequest.ID)
+	if err != nil {
+		return domain.Bid{}, err
+	}
 	return domain.NewBid(domain.NewBidData{
+		ID:          bidID,
 		Name:        bidRequest.Name,
 		Description: bidRequest.Description,
 	})

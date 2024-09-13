@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jackc/pgx/v4"
-
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/domain"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/app/repository/models"
 	"git.codenrock.com/avito-testirovanie-na-backend-1270/cnrprod1725732025-team-78758/zadanie-6105OD/internal/pkg/pg"
@@ -66,9 +64,14 @@ func (r UserRepo) GetUser(ctx context.Context, username string) (*domain.User, e
 
 func (r UserRepo) GetUserByID(ctx context.Context, id string) (domain.User, error) {
 	var dbUser models.User
-	err := r.db.NewSelect().Model(&dbUser).Where("id = ?", id).Scan(ctx)
+	err := r.db.NewSelect().
+		Model((*models.User)(nil)).
+		Column("id", "organization_responsible.organization_id").
+		Join(`LEFT JOIN organization_responsible ON organization_responsible.user_id = "user".id`).
+		Where(`"user".id = ?`, id).
+		Scan(ctx, &dbUser)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, domain.ErrNotFound
 		}
 		return domain.User{}, fmt.Errorf("failed to get user: %w", err)

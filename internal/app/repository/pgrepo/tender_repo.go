@@ -171,7 +171,6 @@ func (r TenderRepo) UpdateTender(ctx context.Context, tender domain.Tender) (dom
 		Set("name = ?", dbTender.Name).
 		Set("description = ?", dbTender.Description).
 		Set("service_type = ?", dbTender.ServiceType).
-		//ExcludeColumn("status", "organization_id", "version", "created_at").
 		Returning("*").
 		Scan(ctx, &updatedTender)
 

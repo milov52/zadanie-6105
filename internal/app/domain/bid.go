@@ -36,13 +36,16 @@ type NewBidData struct {
 // NewTender creates a new tender.
 func NewBid(data NewBidData) (Bid, error) {
 	return Bid{
-		id:         data.ID,
-		name:       data.Name,
-		status:     data.Status,
-		authorType: data.AuthorType,
-		authorId:   data.AuthorId,
-		version:    data.Version,
-		createdAt:  data.CreatedAt,
+		id:             data.ID,
+		name:           data.Name,
+		description:    data.Description,
+		status:         data.Status,
+		authorType:     data.AuthorType,
+		authorId:       data.AuthorId,
+		tenderId:       data.TenderId,
+		organizationId: data.OrganizationId,
+		version:        data.Version,
+		createdAt:      data.CreatedAt,
 	}, nil
 }
 

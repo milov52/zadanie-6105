@@ -42,6 +42,7 @@ func (h HttpServer) CreateTender(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenderRequest.UserID = user.ID().String()
+	tenderRequest.UserID = user.ID().String()
 	tender, err := toDomainTender(tenderRequest)
 	if err != nil {
 		server.RespondWithError(err, w, r)

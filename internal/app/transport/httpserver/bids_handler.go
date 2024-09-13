@@ -51,7 +51,7 @@ func (h HttpServer) getUser(r *http.Request, w http.ResponseWriter, usernameKey 
 	return user, true
 }
 
-// CreateTender creates a new tender
+// CreateBID creates a new bid
 func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 	var bidRequest BidRequest
 	if err := json.NewDecoder(r.Body).Decode(&bidRequest); err != nil {
@@ -64,13 +64,14 @@ func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok := h.getUser(r, w, "username")
-	if !ok {
-		return
-	}
-
-	if user.OrganizationID().String() != bidRequest.OrganizationId {
-		server.NonAuthorised("user is not work in this organization", errors.New("organization mismatch"), w, r)
+	// Get user
+	_, err := h.userService.GetUserByID(r.Context(), bidRequest.AuthorId)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			server.NonAuthorised("user-not-found", err, w, r)
+			return
+		}
+		server.RespondWithError(err, w, r)
 		return
 	}
 
@@ -79,7 +80,6 @@ func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bidRequest.UserID = user.ID().String()
 	bid, err := toDomainBid(bidRequest)
 	if err != nil {
 		server.RespondWithError(err, w, r)
@@ -99,6 +99,10 @@ func (h HttpServer) CreateBid(w http.ResponseWriter, r *http.Request) {
 func (h HttpServer) GetTenderBids(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	tenderId := vars["tenderId"]
+	if _, err := h.tenderService.GetTenderByID(r.Context(), tenderId); err != nil {
+		server.NotFound("tender-not-found", err, w, r)
+		return
+	}
 
 	user, ok := h.getUser(r, w, "username")
 	if !ok {
@@ -143,7 +147,17 @@ func (h HttpServer) GetUserBids(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) GetBidStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+
+	_, ok := h.getUser(r, w, "username")
+	if !ok {
+		return
+	}
+
 	bidID := vars["bidId"]
+	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
+		server.NotFound("bid-not-found", err, w, r)
+		return
+	}
 
 	status, err := h.bidService.GetBidStatus(r.Context(), bidID)
 	if err != nil {
@@ -171,8 +185,8 @@ func (h HttpServer) UpdateBid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	bidID := vars["bidId"]
 
+	bidID := vars["bidId"]
 	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
 		server.NotFound("bid-not-found", err, w, r)
 		return
@@ -183,6 +197,7 @@ func (h HttpServer) UpdateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updateRequest.ID = bidID
 	bid, err := toDomainUpdateBid(updateRequest)
 	if err != nil {
 		server.RespondWithError(err, w, r)
@@ -230,16 +245,22 @@ func (h HttpServer) BidFeedback(w http.ResponseWriter, r *http.Request) {
 
 func (h HttpServer) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bidID := vars["bidId"]
 
 	_, ok := h.getUser(r, w, "username")
 	if !ok {
 		return
 	}
 
+	bidID := vars["bidId"]
+	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
+		server.NotFound("bid-not-found", err, w, r)
+		return
+	}
+
 	status := r.URL.Query()["status"]
-	if status == nil || len(status) == 0 {
-		server.BadRequest("missing-status", errors.New("missing status"), w, r)
+	err := validateBidStatus(status[0])
+	if err != nil {
+		server.BadRequest("invalid-status", err, w, r)
 		return
 	}
 
@@ -256,6 +277,10 @@ func (h HttpServer) UpdateBidStatus(w http.ResponseWriter, r *http.Request) {
 func (h HttpServer) SubmitDecision(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bidID := vars["bidId"]
+	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
+		server.NotFound("bid-not-found", err, w, r)
+		return
+	}
 
 	_, ok := h.getUser(r, w, "username")
 	if !ok {
@@ -281,6 +306,10 @@ func (h HttpServer) SubmitDecision(w http.ResponseWriter, r *http.Request) {
 func (h HttpServer) RollbackBidVersion(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bidID := vars["bidId"]
+	if _, err := h.bidService.GetBidByID(r.Context(), bidID); err != nil {
+		server.NotFound("bid-not-found", err, w, r)
+		return
+	}
 
 	version, err := strconv.Atoi(vars["version"])
 	if err != nil || version <= 0 {
@@ -306,6 +335,10 @@ func (h HttpServer) RollbackBidVersion(w http.ResponseWriter, r *http.Request) {
 func (h HttpServer) GetReviews(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	tenderID := vars["tenderId"]
+	if _, err := h.tenderService.GetTenderByID(r.Context(), tenderID); err != nil {
+		server.NotFound("tender-not-found", err, w, r)
+		return
+	}
 
 	authorUsername, ok := h.getUser(r, w, "authorUsername")
 	if !ok {

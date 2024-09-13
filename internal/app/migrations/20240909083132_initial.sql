@@ -42,7 +42,7 @@ CREATE TYPE tender_status AS ENUM (
     );
 
 CREATE TABLE IF NOT EXISTS tender (
-                        id UUID PRIMARY KEY default 'uuid_generate_v4()',
+                        id UUID PRIMARY KEY,
                         name VARCHAR(100) NOT NULL,
                         description VARCHAR(500) NOT NULL,
                         service_type service_type,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS tender (
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TYPE bild_status AS ENUM (
+CREATE TYPE bid_status AS ENUM (
     'Created',
     'Published',
     'Canceled',
@@ -62,16 +62,15 @@ CREATE TYPE bild_status AS ENUM (
     );
 
 CREATE TYPE author_type AS ENUM (
-    'Created',
-    'Published',
-    'Closed'
+    'User',
+    'Organization'
     );
 
 CREATE TABLE IF NOT EXISTS bid (
-                      id UUID PRIMARY KEY default 'uuid_generate_v4()',
+                      id UUID PRIMARY KEY,
                       name VARCHAR(100) NOT NULL,
                       description VARCHAR(500) NOT NULL,
-                      status bild_status,
+                      status bid_status,
                       tender_id uuid REFERENCES tender(id) ON DELETE CASCADE,
                       author_type author_type,
                       author_id uuid REFERENCES employee(id) ON DELETE CASCADE,
@@ -82,7 +81,7 @@ CREATE TABLE IF NOT EXISTS bid (
 -- +goose Down
 -- Удаляем зависимые таблицы
 DROP TABLE IF EXISTS organization_responsible;
-DROP TABLE IF EXISTS bild;
+DROP TABLE IF EXISTS bid;
 DROP TABLE IF EXISTS tender;
 DROP TABLE IF EXISTS employee;
 DROP TABLE IF EXISTS organization;

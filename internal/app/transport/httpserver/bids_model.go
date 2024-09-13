@@ -7,26 +7,27 @@ import (
 )
 
 type BidRequest struct {
-	Name            string `json:"name"`
-	Description     string `json:"description"`
-	Status          string `json:"status"`
-	TenderId        string `json:"tenderId"`
-	OrganizationId  string `json:"organizationId"`
-	CreatorUsername string `json:"creatorUsername"`
-	UserID          string
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	TenderId    string `json:"tenderId"`
+	AuthorType  string `json:"authorType"`
+	AuthorId    string `json:"authorId"`
 }
 
 type BidResponse struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Status     string    `json:"status"`
-	AuthorType string    `json:"authorType"`
-	AuthorId   string    `json:"authorId"`
-	Version    int32     `json:"version"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID          string    `json:"id"`
+	Description string    `json:"description"`
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	TenderId    string    `json:"tenderId"`
+	AuthorType  string    `json:"authorType"`
+	AuthorId    string    `json:"authorId"`
+	Version     int32     `json:"version"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type UpdateBidRequest struct {
+	ID          string
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
@@ -39,12 +40,26 @@ const (
 	BidStatusTypeRejected  = "Rejected"
 )
 
-func validateBidStatus(status string) error {
+const (
+	AuthorTypeUser         = "User"
+	AuthorTypeOrganization = "Organization"
+)
+
+func validateAuthorType(status string) error {
 	switch status {
-	case BidStatusTypeCreated, BidStatusTypePublished, BidStatusTypeCanceled, BidStatusTypeApproved, BidStatusTypeRejected:
+	case AuthorTypeUser, AuthorTypeOrganization:
 		return nil
 	default:
 		return fmt.Errorf("%w: tender status is invalid", domain.ErrNegative)
+	}
+}
+
+func validateBidStatus(status string) error {
+	switch status {
+	case BidStatusTypeCreated, BidStatusTypePublished, BidStatusTypeCanceled:
+		return nil
+	default:
+		return fmt.Errorf("%w: decision status is invalid", domain.ErrNegative)
 	}
 }
 
@@ -65,10 +80,12 @@ func (r *BidRequest) Validate() error {
 		return fmt.Errorf("%w: description", domain.ErrNegative)
 	}
 	if r.TenderId == "" || len(r.Name) > 100 {
-		return fmt.Errorf("%w: organizationId", domain.ErrNegative)
+		return fmt.Errorf("%w: tenderID", domain.ErrNegative)
 	}
-
-	if err := validateBidStatus(r.Status); err != nil {
+	if r.AuthorId == "" || len(r.AuthorId) > 100 {
+		return fmt.Errorf("%w: authorID", domain.ErrNegative)
+	}
+	if err := validateAuthorType(r.AuthorType); err != nil {
 		return err
 	}
 	return nil

@@ -34,8 +34,15 @@ func NewBidRepo(db *pg.DB) *BidRepo {
 
 // Вспомогательная функция для проверки и добавления условий
 func addWhereCondition(query *bun.SelectQuery, field string, value any) {
-	if value != nil {
-		query.Where(fmt.Sprintf("%s = ?", field), value)
+	switch value.(type) {
+	case string:
+		if value != "" {
+			query.Where(fmt.Sprintf("%s = ?", field), value)
+		}
+	case int:
+		if value != nil {
+			query.Where(fmt.Sprintf("%s = ?", field), value)
+		}
 	}
 }
 
@@ -76,6 +83,9 @@ func (r BidRepo) getBids(ctx context.Context) ([]domain.Bid, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tenders: %w", err)
 	}
+	if len(bids) == 0 {
+		return nil, domain.ErrNotFound
+	}
 
 	domainBids := make([]domain.Bid, len(bids))
 	for i, bid := range bids {
@@ -110,6 +120,9 @@ func (r BidRepo) GetBidByID(ctx context.Context, bidID string) (domain.Bid, erro
 	r.param.ID = bidID
 
 	bids, err := r.getBids(ctx)
+	if err != nil {
+		return domain.Bid{}, err
+	}
 	return bids[0], err
 }
 
@@ -181,7 +194,8 @@ func (r BidRepo) UpdateBid(ctx context.Context, bid domain.Bid) (domain.Bid, err
 		Model(&dbBid).
 		Where("id = ?", dbBid.ID).
 		Set("version = version + 1").
-		ExcludeColumn("id", "status", "tender_id", "author_id", "author_type", "created_at").
+		Set("name = ?", dbBid.Name).
+		Set("description = ?", dbBid.Description).
 		Returning("*").
 		Scan(ctx, &updatedBid)
 
@@ -201,7 +215,7 @@ func (r BidRepo) RollbackBidVersion(ctx context.Context, bidID string, version i
 	var updatedBid models.Bid
 
 	err := r.db.NewUpdate().
-		Model((*models.Tender)(nil)).
+		Model((*models.Bid)(nil)).
 		Set("version = ?", version).
 		Where("id = ?", bidID).
 		Returning("*").

@@ -13,7 +13,7 @@ type Bid struct {
 	ID            uuid.UUID `bun:",pk,type:uuid,default:uuid_generate_v4()"`
 	Name          string
 	Description   string
-	Status        string
+	Status        string    `bun:",default:Created"`
 	TenderId      uuid.UUID `bun:",type:uuid"`
 	AuthorType    string
 	AuthorId      uuid.UUID `bun:",type:uuid"`

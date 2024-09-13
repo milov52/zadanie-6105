@@ -53,7 +53,6 @@ RUN chmod +x /app/entrypoint.sh
 EXPOSE 8080
 
 # Define environment variables for PostgreSQL connection from the already defined environment
-ENV LOCAL_MIGRATION_DSN="${POSTGRES_CONN}"
 ENV LOCAL_MIGRATION_DIR="./migrations"
 
 # Use the entrypoint script to run migrations first, then start the app

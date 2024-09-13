@@ -161,7 +161,7 @@ func (h HttpServer) GetTenderStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := h.userService.GetUser(r.Context(), username[0])
+	user, err := h.userService.GetUser(r.Context(), username[0])
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			server.NonAuthorised("user-not-found", err, w, r)
@@ -171,7 +171,7 @@ func (h HttpServer) GetTenderStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := h.tenderService.GetTenderStatus(r.Context(), tenderID)
+	tender, err := h.tenderService.GetTenderByID(r.Context(), tenderID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			server.NotFound("tender-not-found", err, w, r)
@@ -181,7 +181,12 @@ func (h HttpServer) GetTenderStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server.RespondOK(status, w, r)
+	if tender.UserID() != user.ID() {
+		server.Forbidden("not user tender", err, w, r)
+		return
+	}
+
+	server.RespondOK(tender.Status(), w, r)
 }
 
 func (h HttpServer) UpdateTender(w http.ResponseWriter, r *http.Request) {

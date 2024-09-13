@@ -79,7 +79,11 @@ func (r TenderRepo) GetTenderByID(ctx context.Context, tenderID string) (domain.
 		Where("id = ? and status != ?", tenderID, statusClosed)
 	query.Order("name")
 	err := query.Scan(ctx)
+
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Tender{}, domain.ErrNotFound
+		}
 		return domain.Tender{}, fmt.Errorf("failed to get tenders: %w", err)
 	}
 
